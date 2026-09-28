@@ -1,20 +1,16 @@
-# AnNT — Personal Portfolio
+# AnNT — Personal Archive
 
-Portfolio tĩnh bằng HTML, CSS và JavaScript thuần, được thiết kế theo ngôn ngữ editorial hiện đại: xanh–đen–trắng, hình học gợi liên tưởng đến mặt nước, typography giàu nhịp điệu và chuyển động có chủ đích. Toàn bộ hình ảnh nhận diện được dựng bằng HTML/CSS/SVG nguyên bản; không dùng artwork, logo hay tài sản từ trò chơi.
+A static GitHub Pages portfolio shaped as a soft blue-and-ivory editorial scrapbook. The supplied reference image is published unchanged at `assets/editorial-reference.jpg` and appears on the home page. Achievement and gallery entries in this version are visibly labelled as demo or placeholder content.
 
-Nội dung dự án và số liệu hiện là dữ liệu demo. Đường dẫn liên hệ trỏ đến hồ sơ GitHub công khai của `AnNT-k7`.
+## Run and test locally
 
-## Chạy tại máy
-
-Không cần bước build:
+There is no build step:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Mở `http://localhost:8000`. Có thể tắt JavaScript hoặc bật chế độ giảm chuyển động của hệ điều hành để kiểm tra các fallback hỗ trợ tiếp cận.
-
-## Kiểm thử trình duyệt
+Open `http://localhost:8000`. To run the browser coverage:
 
 ```bash
 npm install
@@ -22,17 +18,23 @@ npx playwright install chromium
 npm test
 ```
 
-Bộ test kiểm tra desktop/mobile, menu bàn phím, fallback khi JavaScript hoặc `IntersectionObserver` không hoạt động, và tùy chọn giảm chuyển động được lưu qua lần tải lại.
+The tests cover desktop and mobile layouts, keyboard activation, carousel controls, reduced motion, unavailable images, direct and unknown detail URLs, no-JavaScript rendering, and a simulated `/AnNT.github.io/` project path.
 
-## Cá nhân hóa
+## Replace the content
 
-- Cập nhật phần giới thiệu, năng lực, dự án demo và liên kết trong `index.html`.
-- Chỉnh palette, typography và kích thước layout qua các biến ở đầu `styles.css`.
-- Thay favicon bằng một SVG nguyên bản khác nếu đổi nhận diện.
-- Giữ nhãn “demo” cho đến khi thay bằng dự án và thông tin liên hệ thật.
+All personal, photo, and achievement data lives in [`content.js`](content.js). No rebuild is required after editing it.
 
-## Đưa lên GitHub Pages
+- `profile`: change the display name, role line, introduction, note, and public links. Leave a URL as an empty string to keep its control visibly disabled. The included LinkedIn and CV entries intentionally have no fake destinations.
+- `gallery.items`: replace `image`, `alt`, `title`, and `caption`. Set `placeholder: false` after adding a real personal image. Common landscape and portrait ratios are accepted through `object-fit: cover`; missing files show a styled fallback.
+- `achievements`: use a unique URL-safe `id`, then edit the summary, full story, facts, optional links, and image metadata. Set `placeholder: false` only when the content describes a real, verified milestone. A card automatically links to `achievement.html?id=YOUR_ID`.
+- Add or remove array items freely. The home rail and reusable detail page read the same data.
 
-Repository được phục vụ trực tiếp từ các file ở thư mục gốc, không qua framework hoặc bundler. Trong **Settings → Pages**, chọn **Deploy from a branch**, nhánh `main`, thư mục `/ (root)`. File `.nojekyll` giúp GitHub Pages phát hành nguyên trạng các tài sản tĩnh.
+Keep image paths relative, such as `assets/my-photo.jpg`, so the site works both at a domain root and under `/AnNT.github.io/`. The neutral SVG files in `assets/` are safe placeholders to overwrite by changing the paths in `content.js`; the original supplied JPEG should not be cropped or overwritten.
 
-Sau khi deploy, kiểm tra trang chính và các tài sản tương đối (`styles.css`, `script.js`, `favicon.svg`) đều trả về HTTP 200.
+The short no-JavaScript copy in `index.html` and `achievement.html` is a resilience fallback, not a second content store. Update it only if the overall purpose of the site changes.
+
+## GitHub Pages
+
+The repository is served directly from the root of `main`. In **Settings → Pages**, choose **Deploy from a branch**, `main`, and `/ (root)`. Keep `.nojekyll` tracked. Every internal URL is relative, including the stylesheet, scripts, detail links, favicon, reference JPEG, and placeholder art.
+
+After deploying, verify both the home page and a direct detail URL such as `achievement.html?id=first-steps`.

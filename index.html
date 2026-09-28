@@ -1,215 +1,98 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!doctype html>
+<html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Portfolio của AnNT — developer xây dựng trải nghiệm số rõ ràng, có chủ đích và giàu cá tính.">
-    <meta name="theme-color" content="#07111f">
-    <meta property="og:title" content="AnNT — Make It Clear">
-    <meta property="og:description" content="Một portfolio về code, sản phẩm và những ý tưởng đáng theo đuổi.">
-    <meta property="og:type" content="website">
-    <title>AnNT — Make It Clear</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="AnNT's personal portfolio — a quiet collection of notes, photographs, and milestones." data-profile-description>
+    <meta name="theme-color" content="#254b70">
+    <title>AnNT — Personal Archive</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="content.js" defer></script>
     <script src="script.js" defer></script>
   </head>
-  <body>
-    <a class="skip-link" href="#main-content">Đi thẳng đến nội dung</a>
-    <div class="page-progress" aria-hidden="true"><span data-progress></span></div>
-    <div class="pointer-orb" aria-hidden="true"></div>
-
-    <header class="site-header" data-header>
-      <a class="brand" href="#home" aria-label="AnNT — về đầu trang">
-        <svg class="brand-symbol" viewBox="0 0 48 48" aria-hidden="true">
-          <path d="M6 37 20 7h9L15 37H6Zm19 0 9-20 8 20h-8l-3-8-3 8h-3Z">
-        </svg>
-        <span>AN<span>NT</span></span>
-      </a>
-
-      <div class="header-actions">
-        <button class="motion-toggle" type="button" data-motion aria-pressed="false" aria-label="Giảm chuyển động">
-          <span class="motion-dot" aria-hidden="true"></span>
-          <span>Giảm chuyển động</span>
-        </button>
-        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav" aria-label="Mở menu">
-          <span></span><span></span>
-        </button>
-      </div>
-
-      <nav id="main-nav" class="main-nav" aria-label="Điều hướng chính">
-        <a href="#about"><span>01</span> Giới thiệu</a>
-        <a href="#skills"><span>02</span> Năng lực</a>
-        <a href="#projects"><span>03</span> Dự án</a>
-        <a href="#contact"><span>04</span> Liên hệ</a>
+  <body data-page="home">
+    <a class="skip-link" href="#main-content">Skip to the story</a>
+    <header class="masthead">
+      <a class="wordmark" href="index.html" aria-label="AnNT home" data-identity-home data-identity>AnNT</a>
+      <p>Personal archive · volume 01</p>
+      <nav aria-label="Primary navigation">
+        <a href="#profile">Profile</a>
+        <a href="#photographs">Photographs</a>
+        <a href="#achievements">Achievements</a>
       </nav>
     </header>
 
-    <main id="main-content">
-      <section id="home" class="hero" aria-labelledby="hero-title">
-        <div class="hero-grid" aria-hidden="true"></div>
-        <div class="orbit orbit-one" aria-hidden="true"></div>
-        <div class="orbit orbit-two" aria-hidden="true"></div>
-        <p class="vertical-note" aria-hidden="true">DESIGN · DEVELOP · REFLECT · REPEAT</p>
-
-        <div class="hero-copy">
-          <p class="eyebrow reveal"><span>PORTFOLIO / 2026</span><b>Based in Việt Nam</b></p>
-          <h1 id="hero-title" class="reveal">
-            Biến điều<br>
-            <span class="word-window"><i>phức tạp</i></span><br>
-            thành <em>rõ ràng.</em>
-          </h1>
-          <p class="hero-lead reveal">
-            Xin chào, mình là <strong>AnNT</strong> — developer yêu những giao diện sắc nét,
-            hệ thống mạch lạc và sản phẩm có lý do để tồn tại. Mình đang mở lòng với những ý tưởng và cơ hội hợp tác mới.
-          </p>
-          <div class="hero-actions reveal">
-            <a class="button button-light" href="#projects">Xem dự án <span aria-hidden="true">↘</span></a>
-            <a class="scrap-link" href="#about">Đọc thêm về mình <span aria-hidden="true">→</span></a>
+    <main id="main-content" class="page-grid">
+      <aside id="achievements" class="achievement-rail" aria-labelledby="achievement-heading">
+        <div class="vertical-caption" aria-hidden="true">Selected notes · in motion · <span data-year>2026</span></div>
+        <div class="rail-heading">
+          <p class="eyebrow">A growing record</p>
+          <h2 id="achievement-heading">Achievements</h2>
+          <p>Sample entries are clearly marked until real milestones are added.</p>
+        </div>
+        <div class="carousel" data-carousel>
+          <div class="carousel-window" data-carousel-window>
+            <div class="achievement-track" data-achievement-track>
+              <a class="achievement-card placeholder-card" href="achievement.html?id=first-steps">
+                <p class="card-meta">Loading the archive…</p>
+                <h3>Sample achievement</h3>
+                <p>Open the editable content file to add a real milestone.</p>
+              </a>
+            </div>
           </div>
-        </div>
-
-        <div class="hero-art reveal" aria-hidden="true">
-          <div class="moon-disc"><span>AN</span></div>
-          <div class="portrait-shape"><i></i><b></b></div>
-          <div class="signal-card"><span>NOW</span><strong>OPEN TO<br>IDEAS</strong></div>
-          <p>THINK / BUILD<br>LEARN / EVOLVE</p>
-        </div>
-
-        <div class="hero-ticket reveal" aria-hidden="true">
-          <span>VOL. 01</span><b>∞</b><span>KEEP<br>CURIOUS</span>
-        </div>
-        <a class="scroll-cue" href="#about"><span>Cuộn để khám phá</span><i aria-hidden="true"></i></a>
-      </section>
-
-      <section id="about" class="section about" aria-labelledby="about-title">
-        <div class="section-label reveal"><span>01</span><p>PROFILE<br>&amp; PRINCIPLES</p></div>
-        <div class="section-heading reveal">
-          <p class="kicker">Một chút về mình</p>
-          <h2 id="about-title">Tò mò là<br><em>la bàn.</em></h2>
-        </div>
-
-        <div class="about-layout">
-          <div class="statement reveal">
-            <span class="statement-mark" aria-hidden="true">“</span>
-            <blockquote>Mình không săn tìm câu trả lời nhanh. Mình tìm đúng câu hỏi, rồi xây câu trả lời đáng tin cậy.</blockquote>
-            <p>— Cách mình tiếp cận công việc</p>
+          <div class="carousel-controls" aria-label="Achievement carousel controls" data-carousel-controls hidden>
+            <button type="button" data-previous aria-label="Previous achievement">↑</button>
+            <button type="button" data-pause aria-pressed="false">Pause</button>
+            <button type="button" data-next aria-label="Next achievement">↓</button>
           </div>
-          <div class="about-copy reveal">
-            <p class="lead">Mình thích đứng ở giao điểm giữa <strong>kỹ thuật</strong>, <strong>thẩm mỹ</strong> và <strong>giá trị người dùng</strong>.</p>
-            <p>Mỗi sản phẩm tốt đều bắt đầu bằng việc lắng nghe. Từ đó, mình phân rã vấn đề, thử nghiệm có chủ đích và biến những chi tiết rời rạc thành một trải nghiệm thống nhất.</p>
-            <ol class="principles" aria-label="Ba nguyên tắc làm việc">
-              <li><span>01</span><h3>Hiểu sâu</h3><p>Đặt câu hỏi trước khi viết code.</p></li>
-              <li><span>02</span><h3>Làm gọn</h3><p>Giảm nhiễu, giữ lại điều quan trọng.</p></li>
-              <li><span>03</span><h3>Tiến hóa</h3><p>Đo lường, học hỏi và cải thiện.</p></li>
-            </ol>
+          <p class="carousel-status sr-only" data-carousel-status aria-live="polite"></p>
+        </div>
+        <noscript>
+          <div class="no-script-note"><strong>Achievement archive.</strong> JavaScript is unavailable, so the motion is paused. Details can still be reached from <a href="achievement.html?id=first-steps">this sample entry</a>.</div>
+        </noscript>
+      </aside>
+
+      <div class="paper-field">
+        <section id="profile" class="profile" aria-labelledby="profile-name">
+          <div class="profile-copy">
+            <p class="eyebrow" data-kicker>A quiet corner of the web</p>
+            <h1 id="profile-name" data-name data-identity>AnNT</h1>
+            <p class="pronunciation" data-role>developer · observer · careful maker</p>
+            <p class="intro" data-bio>I enjoy turning complicated ideas into calm, useful digital experiences — and keeping a record of what I learn along the way.</p>
+            <div class="profile-links" aria-label="Profile links">
+              <a class="ink-link" data-github href="https://github.com/AnNT-k7" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+              <span class="disabled-link" data-linkedin aria-disabled="true">LinkedIn soon</span>
+              <span class="disabled-link" data-cv aria-disabled="true">CV soon</span>
+            </div>
+            <p class="availability" data-note>Learning in public, one thoughtful project at a time.</p>
           </div>
-        </div>
-      </section>
+          <figure class="reference-card torn-edge">
+            <img src="assets/editorial-reference.jpg" alt="Blue editorial collage used as the visual reference for this portfolio">
+            <figcaption>The source page · kept intact in the archive</figcaption>
+          </figure>
+        </section>
 
-      <section id="skills" class="section skills" aria-labelledby="skills-title">
-        <div class="skills-backdrop" aria-hidden="true">CAPABILITIES</div>
-        <div class="section-label section-label-light reveal"><span>02</span><p>TOOLS<br>&amp; THINKING</p></div>
-        <div class="section-heading reveal">
-          <p class="kicker">Năng lực</p>
-          <h2 id="skills-title">Đủ kỹ thuật.<br><em>Đúng tư duy.</em></h2>
-        </div>
-
-        <div class="skill-stack">
-          <article class="skill-card reveal">
-            <div class="skill-number">I</div>
-            <div><h3>Frontend Engineering</h3><p>Giao diện responsive, dễ tiếp cận và có hiệu năng tốt trên nhiều thiết bị.</p></div>
-            <ul aria-label="Công nghệ frontend"><li>HTML</li><li>CSS</li><li>JavaScript</li><li>React</li></ul>
-            <span class="skill-icon" aria-hidden="true">↗</span>
-          </article>
-          <article class="skill-card reveal">
-            <div class="skill-number">II</div>
-            <div><h3>Backend &amp; Systems</h3><p>API rõ ràng, dữ liệu có cấu trúc và nền tảng dễ bảo trì, mở rộng.</p></div>
-            <ul aria-label="Công nghệ backend"><li>Node.js</li><li>Python</li><li>REST API</li><li>SQL</li></ul>
-            <span class="skill-icon" aria-hidden="true">↗</span>
-          </article>
-          <article class="skill-card reveal">
-            <div class="skill-number">III</div>
-            <div><h3>Product Craft</h3><p>Kết nối mục tiêu sản phẩm với quyết định thiết kế và kỹ thuật thực tế.</p></div>
-            <ul aria-label="Kỹ năng sản phẩm"><li>UX Thinking</li><li>Git</li><li>Agile</li></ul>
-            <span class="skill-icon" aria-hidden="true">↗</span>
-          </article>
-        </div>
-      </section>
-
-      <section id="projects" class="section projects" aria-labelledby="projects-title">
-        <div class="section-label reveal"><span>03</span><p>SELECTED<br>EXPERIMENTS</p></div>
-        <div class="section-heading projects-heading reveal">
-          <div><p class="kicker">Dự án chọn lọc</p><h2 id="projects-title">Ý tưởng được<br><em>đưa vào quỹ đạo.</em></h2></div>
-          <p>Ba concept minh họa cho cách mình nghĩ về trải nghiệm, dữ liệu và công cụ. Nội dung hiện là demo.</p>
-        </div>
-
-        <div class="project-list">
-          <article class="project project-blue reveal">
-            <div class="project-visual" aria-hidden="true">
-              <span class="project-stamp">DEMO<br>CONCEPT</span>
-              <div class="app-frame"><div class="app-bar"><i></i><i></i><i></i></div><div class="app-screen"><b></b><span></span><span></span><span></span></div></div>
-              <div class="project-index">01</div>
+        <section id="photographs" class="gallery-section" aria-labelledby="gallery-heading">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Films &amp; photographs</p>
+              <h2 id="gallery-heading">Small scenes,<br><em>saved softly.</em></h2>
             </div>
-            <div class="project-copy">
-              <div class="project-meta"><span>Productivity / Web App</span><span>2026</span></div>
-              <h3>Flow Atlas</h3>
-              <p>Không gian quản lý công việc giúp biến mục tiêu lớn thành những bước đi rõ ràng và có thể hoàn thành.</p>
-              <a href="https://github.com/AnNT-k7" target="_blank" rel="noreferrer">Xem GitHub <span aria-hidden="true">↗</span></a>
-            </div>
-          </article>
+            <p data-gallery-intro>A future home for personal photographs. These neutral frames are placeholders, not claimed memories.</p>
+          </div>
+          <div class="photo-grid" data-gallery>
+            <figure class="photo placeholder-photo"><span>Photograph coming soon</span><figcaption>Future photograph · placeholder</figcaption></figure>
+          </div>
+          <noscript><p class="no-script-note">Photographs are intentionally represented by neutral placeholders in this version.</p></noscript>
+        </section>
 
-          <article class="project project-white reveal">
-            <div class="project-visual" aria-hidden="true">
-              <span class="project-stamp">DEMO<br>CONCEPT</span>
-              <div class="data-viz"><div class="data-ring"><strong>84</strong><small>INSIGHT<br>SCORE</small></div><i></i><i></i><i></i></div>
-              <div class="project-index">02</div>
-            </div>
-            <div class="project-copy">
-              <div class="project-meta"><span>Analytics / API</span><span>2026</span></div>
-              <h3>Tide Metrics</h3>
-              <p>Dashboard biến luồng dữ liệu phức tạp thành tín hiệu dễ đọc để đội ngũ ra quyết định tự tin hơn.</p>
-              <a href="https://github.com/AnNT-k7" target="_blank" rel="noreferrer">Xem GitHub <span aria-hidden="true">↗</span></a>
-            </div>
-          </article>
-
-          <article class="project project-dark reveal">
-            <div class="project-visual" aria-hidden="true">
-              <span class="project-stamp">DEMO<br>CONCEPT</span>
-              <div class="terminal"><p><b>~/signal</b> initiate</p><p><span>✓</span> map the noise</p><p><span>✓</span> find the pattern</p><p><span>→</span> ship with intent_</p></div>
-              <div class="project-index">03</div>
-            </div>
-            <div class="project-copy">
-              <div class="project-meta"><span>Developer Tool / CLI</span><span>2026</span></div>
-              <h3>Signal Kit</h3>
-              <p>Bộ công cụ dòng lệnh nhỏ gọn, tự động hóa các thao tác lặp lại để developer tập trung vào phần việc có ý nghĩa.</p>
-              <a href="https://github.com/AnNT-k7" target="_blank" rel="noreferrer">Xem GitHub <span aria-hidden="true">↗</span></a>
-            </div>
-          </article>
-        </div>
-        <p class="demo-disclaimer reveal">* Các dự án và số liệu trên là nội dung demo, chưa đại diện cho sản phẩm đã phát hành.</p>
-      </section>
-
-      <section id="contact" class="contact" aria-labelledby="contact-title">
-        <div class="contact-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <p class="kicker reveal">04 / Kết nối</p>
-        <h2 id="contact-title" class="reveal">Có tín hiệu<br><em>mới?</em></h2>
-        <p class="contact-copy reveal">Mình đang mở lòng với những ý tưởng đáng thử và cơ hội hợp tác mới. Bạn có thể xem công việc của mình cùng các kênh công khai trên GitHub.</p>
-        <a class="button button-dark reveal" href="https://github.com/AnNT-k7" target="_blank" rel="noreferrer">Xem hồ sơ GitHub <span aria-hidden="true">↗</span></a>
-        <p class="contact-note reveal">Trang này chưa cung cấp kênh nhắn tin trực tiếp.</p>
-      </section>
+        <footer class="folio-footer">
+          <p>Made as a living personal archive.</p>
+          <a href="#main-content">Back to top ↑</a>
+          <small>© <span data-year>2026</span> <span data-identity>AnNT</span></small>
+        </footer>
+      </div>
     </main>
-
-    <footer class="site-footer">
-      <a class="brand" href="#home" aria-label="AnNT — về đầu trang">
-        <svg class="brand-symbol" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 37 20 7h9L15 37H6Zm19 0 9-20 8 20h-8l-3-8-3 8h-3Z"></svg>
-        <span>AN<span>NT</span></span>
-      </a>
-      <p>Think clearly. Build deliberately.</p>
-      <div class="footer-links"><a href="https://github.com/AnNT-k7" target="_blank" rel="noreferrer">GitHub ↗</a><a href="#projects">Dự án ↑</a></div>
-      <small>© <span data-year>2026</span> AnNT</small>
-    </footer>
   </body>
 </html>
