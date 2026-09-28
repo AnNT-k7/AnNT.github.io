@@ -1,21 +1,38 @@
-# AnNT — Personal GitHub Pages
+# AnNT — Personal Portfolio
 
-Portfolio cá nhân lấy cảm hứng từ tinh thần kiên trì và vượt giới hạn của Asta trong *Black Clover*. Toàn bộ phần minh họa được dựng bằng HTML/CSS/SVG/Canvas, không sử dụng artwork chính thức.
+Portfolio tĩnh bằng HTML, CSS và JavaScript thuần, được thiết kế theo ngôn ngữ editorial hiện đại: xanh–đen–trắng, hình học gợi liên tưởng đến mặt nước, typography giàu nhịp điệu và chuyển động có chủ đích. Toàn bộ hình ảnh nhận diện được dựng bằng HTML/CSS/SVG nguyên bản; không dùng artwork, logo hay tài sản từ trò chơi.
+
+Nội dung dự án và số liệu hiện là dữ liệu demo. Đường dẫn liên hệ trỏ đến hồ sơ GitHub công khai của `AnNT-k7`.
 
 ## Chạy tại máy
+
+Không cần bước build:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Mở `http://localhost:8000`.
+Mở `http://localhost:8000`. Có thể tắt JavaScript hoặc bật chế độ giảm chuyển động của hệ điều hành để kiểm tra các fallback hỗ trợ tiếp cận.
 
-## Đưa lên GitHub Pages
+## Kiểm thử trình duyệt
 
-Đẩy các file ở thư mục gốc lên nhánh `main` của repository `AnNT-k7/AnNT.github.io`. Trong **Settings → Pages**, chọn **Deploy from a branch**, nhánh `main`, thư mục `/ (root)`.
+```bash
+npm install
+npx playwright install chromium
+npm test
+```
+
+Bộ test kiểm tra desktop/mobile, menu bàn phím, fallback khi JavaScript hoặc `IntersectionObserver` không hoạt động, và tùy chọn giảm chuyển động được lưu qua lần tải lại.
 
 ## Cá nhân hóa
 
-- Thay nội dung dự án demo và đường dẫn GitHub trong `index.html`.
-- Thay các project demo và CTA GitHub bằng dự án/kênh liên hệ thật khi sẵn sàng.
-- Chỉnh màu chủ đạo qua các biến ở đầu `styles.css`.
+- Cập nhật phần giới thiệu, năng lực, dự án demo và liên kết trong `index.html`.
+- Chỉnh palette, typography và kích thước layout qua các biến ở đầu `styles.css`.
+- Thay favicon bằng một SVG nguyên bản khác nếu đổi nhận diện.
+- Giữ nhãn “demo” cho đến khi thay bằng dự án và thông tin liên hệ thật.
+
+## Đưa lên GitHub Pages
+
+Repository được phục vụ trực tiếp từ các file ở thư mục gốc, không qua framework hoặc bundler. Trong **Settings → Pages**, chọn **Deploy from a branch**, nhánh `main`, thư mục `/ (root)`. File `.nojekyll` giúp GitHub Pages phát hành nguyên trạng các tài sản tĩnh.
+
+Sau khi deploy, kiểm tra trang chính và các tài sản tương đối (`styles.css`, `script.js`, `favicon.svg`) đều trả về HTTP 200.
