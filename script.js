@@ -1,221 +1,271 @@
-const content = window.PORTFOLIO_CONTENT;
+const content = window.PORTFOLIO_CONTENT || {};
 
-document.querySelectorAll('[data-year]').forEach((element) => {
-  element.textContent = new Date().getFullYear();
-});
-
-function makeElement(tag, className, text) {
+const makeElement = (tag, className, text) => {
   const element = document.createElement(tag);
   if (className) element.className = className;
   if (text !== undefined) element.textContent = text;
   return element;
-}
+};
 
-function installImageFallback(image, container, label) {
-  const fallback = makeElement('span', 'image-fallback', label || 'Image unavailable');
-  container.append(fallback);
+document.querySelectorAll('[data-year]').forEach((node) => { node.textContent = new Date().getFullYear(); });
+
+function imageWithFallback(item, container, className = '') {
+  const image = new Image();
+  image.className = className;
+  image.src = item.image;
+  image.alt = item.alt || item.imageAlt || '';
+  const fallback = makeElement('span', 'image-fallback', `${item.title || 'Image'} — image unavailable`);
+  container.append(image, fallback);
   image.addEventListener('error', () => container.classList.add('is-missing'), { once: true });
 }
 
-function renderProfileLink(element, item, dataName) {
-  if (!element || !item) return;
-  const replacement = makeElement(item.url ? 'a' : 'span', item.url ? 'ink-link' : 'disabled-link', item.label);
-  replacement.setAttribute(`data-${dataName}`, '');
-  if (item.url) {
-    replacement.href = item.url;
-    if (/^https?:/.test(item.url)) { replacement.target = '_blank'; replacement.rel = 'noreferrer'; }
+function renderLink(current, data, key) {
+  if (!current || !data) return;
+  const active = Boolean(data.url);
+  const replacement = makeElement(active ? 'a' : 'span', `ink-link${active ? '' : ' is-disabled'}`, data.label);
+  replacement.dataset[key] = '';
+  if (active) {
+    replacement.href = data.url;
+    if (/^https?:/i.test(data.url)) { replacement.target = '_blank'; replacement.rel = 'noreferrer'; }
   } else {
     replacement.setAttribute('aria-disabled', 'true');
   }
-  element.replaceWith(replacement);
+  current.replaceWith(replacement);
 }
 
 function renderIdentity() {
-  const name = content?.profile?.name;
-  if (!name) return;
-  document.querySelectorAll('[data-identity]').forEach((element) => { element.textContent = name; });
-  document.querySelectorAll('[data-name]').forEach((element) => { element.textContent = name; });
+  const profile = content.profile || {};
+  const name = profile.name || 'AnNT';
+  document.querySelectorAll('[data-identity], [data-name]').forEach((node) => { node.textContent = name; });
+  document.querySelectorAll('[data-identity-home]').forEach((node) => { node.setAttribute('aria-label', `${name} home`); });
   const description = document.querySelector('[data-profile-description]');
   if (description) description.content = document.body.dataset.page === 'home'
-    ? `${name}'s personal portfolio — a quiet collection of notes, photographs, and milestones.`
+    ? `${name}'s personal portfolio — a quiet collection of photographs, notes, and milestones.`
     : `A story from ${name}'s personal achievement archive.`;
   document.title = document.body.dataset.page === 'home' ? `${name} — Personal Archive` : `Achievement — ${name}`;
 }
 
 function renderProfile() {
-  if (!content?.profile) return;
-  const profile = content.profile;
-  document.querySelector('[data-kicker]').textContent = profile.kicker;
-  document.querySelector('[data-role]').textContent = profile.role;
-  document.querySelector('[data-bio]').textContent = profile.bio;
-  document.querySelector('[data-note]').textContent = profile.note;
-  renderProfileLink(document.querySelector('[data-github]'), profile.github, 'github');
-  renderProfileLink(document.querySelector('[data-linkedin]'), profile.linkedin, 'linkedin');
-  renderProfileLink(document.querySelector('[data-cv]'), profile.cv, 'cv');
-}
-
-function sortAchievements(achievements) {
-  return [...achievements].sort((a, b) => {
-    const yearA = a.year === 'Next' ? 9999 : parseInt(a.year) || 0;
-    const yearB = b.year === 'Next' ? 9999 : parseInt(b.year) || 0;
-    return yearB - yearA;
+  const profile = content.profile || {};
+  ['kicker', 'role', 'bio', 'note'].forEach((key) => {
+    const node = document.querySelector(`[data-${key}]`);
+    if (node && Object.prototype.hasOwnProperty.call(profile, key)) node.textContent = profile[key] ?? '';
   });
+  renderLink(document.querySelector('[data-github]'), profile.github, 'github');
+  renderLink(document.querySelector('[data-linkedin]'), profile.linkedin, 'linkedin');
+  renderLink(document.querySelector('[data-cv]'), profile.cv, 'cv');
 }
 
-function makeAchievementCard(item) {
+function renderGallery() {
+  const gallery = document.querySelector('[data-gallery]');
+  if (!gallery) return;
+  const intro = document.querySelector('[data-gallery-intro]');
+  if (intro && Object.prototype.hasOwnProperty.call(content.gallery || {}, 'intro')) intro.textContent = content.gallery.intro ?? '';
+  const items = Array.isArray(content.gallery?.items) ? content.gallery.items : [];
+  if (!items.length) {
+    gallery.replaceChildren(makeElement('p', 'collection-empty', 'Photographs will be added here when they are ready to share.'));
+    return;
+  }
+  gallery.replaceChildren(...items.map((item, index) => {
+    const figure = makeElement('figure', `photo${item.placeholder ? ' placeholder-photo' : ''}`);
+    figure.style.setProperty('--tilt', `${index % 2 ? 1.5 : -1.2}deg`);
+    imageWithFallback(item, figure);
+    const caption = document.createElement('figcaption');
+    caption.append(makeElement('strong', '', item.title), makeElement('span', '', item.caption));
+    figure.append(caption);
+    return figure;
+  }));
+}
+
+function sortedAchievements() {
+  const items = Array.isArray(content.achievements) ? content.achievements : [];
+  return [...items].sort((a, b) => String(b.date || b.year || '').localeCompare(String(a.date || a.year || '')));
+}
+
+function achievementCard(item, index) {
   const card = makeElement('a', 'achievement-card');
   card.href = `achievement.html?id=${encodeURIComponent(item.id)}`;
-  const meta = makeElement('p', 'card-meta');
-  const catYear = makeElement('div', 'card-category-year');
-  catYear.append(
-    makeElement('span', 'card-category', item.category),
-    makeElement('span', 'card-year', item.year)
+  card.dataset.achievementId = item.id;
+  const number = makeElement('span', 'card-index', String(index + 1).padStart(2, '0'));
+  const copy = makeElement('span', 'card-copy');
+  copy.append(
+    makeElement('small', '', `${item.category} · ${item.year}${item.placeholder ? ' · demo' : ''}`),
+    makeElement('strong', '', item.title),
+    makeElement('span', '', item.summary)
   );
-  meta.append(catYear);
-  if (item.placeholder) meta.append(makeElement('span', 'sample-label', 'Demo'));
-  card.append(meta, makeElement('h3', '', item.title), makeElement('p', '', item.summary));
+  card.append(number, copy);
   return card;
 }
 
 function setupAchievements() {
-  const list = document.getElementById('achievements-list');
-  const scrollContainer = document.getElementById('achievements-scroll');
-  const viewAllBtn = document.getElementById('view-all-btn');
-  if (!list || !scrollContainer || !viewAllBtn) return;
+  const track = document.querySelector('[data-achievement-track]');
+  const viewport = document.querySelector('[data-achievement-viewport]');
+  const controls = document.querySelector('[data-carousel-controls]');
+  const previous = document.querySelector('[data-previous]');
+  const next = document.querySelector('[data-next]');
+  const pause = document.querySelector('[data-pause]');
+  const status = document.querySelector('[data-carousel-status]');
+  const viewAll = document.querySelector('[data-view-all]');
+  if (!track || !viewport || !controls || !viewAll) return;
+  const interactionRegion = viewport.closest('.filmstrip-layout') || viewport;
 
-  const allItems = Array.isArray(content?.achievements) ? content.achievements : [];
-  if (!allItems.length) {
-    list.append(makeElement('li', 'collection-empty rail-empty', 'Achievement notes will appear here as the archive grows.'));
-    viewAllBtn.style.display = 'none';
+  const all = sortedAchievements();
+  const newest = all.slice(0, 5);
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let index = 0;
+  let expanded = false;
+  let explicitlyPaused = false;
+  let hoverPaused = false;
+  let focusPaused = false;
+  let timer;
+  let touchX = null;
+  let lastWheelAt = -Infinity;
+
+  if (!all.length) {
+    track.replaceChildren(makeElement('p', 'collection-empty', 'Achievement notes will appear here as the archive grows.'));
+    viewport.removeAttribute('tabindex');
+    controls.hidden = true;
+    controls.querySelectorAll('button').forEach((button) => { button.disabled = true; });
+    viewAll.hidden = true;
     return;
   }
 
-  const sorted = sortAchievements(allItems);
-  const top5 = sorted.slice(0, 5);
-  const remaining = sorted.slice(5);
-  let showingAll = false;
+  controls.hidden = newest.length < 2;
+  viewAll.hidden = all.length <= newest.length;
 
-  function renderCards(items) {
-    list.replaceChildren(...items.map(item => makeAchievementCard(item)));
-  }
+  const stopTimer = () => { window.clearInterval(timer); timer = undefined; };
+  const staticMode = () => expanded || reduced.matches;
 
-  function duplicateForLoop() {
-    const cards = [...list.children];
-    cards.forEach(card => {
-      const clone = card.cloneNode(true);
-      clone.setAttribute('aria-hidden', 'true');
-      clone.tabIndex = -1;
-      list.appendChild(clone);
+  function update(options = {}) {
+    const items = expanded ? all : newest;
+    index = ((index % items.length) + items.length) % items.length;
+    track.classList.toggle('is-static', staticMode());
+    viewport.classList.toggle('is-expanded', expanded);
+    controls.hidden = expanded || reduced.matches || newest.length < 2;
+    const cards = [...track.querySelectorAll('.achievement-card')];
+    const offset = cards[index] && cards[0] ? cards[index].offsetTop - cards[0].offsetTop : 0;
+    track.style.transform = staticMode() ? 'none' : `translateY(-${offset}px)`;
+    cards.forEach((card, cardIndex) => {
+      card.tabIndex = staticMode() || cardIndex === index ? 0 : -1;
+      card.setAttribute('aria-current', !staticMode() && cardIndex === index ? 'true' : 'false');
     });
+    status.setAttribute('aria-live', options.announce ? 'polite' : 'off');
+    status.textContent = expanded ? `${items.length} archive entries` : `${index + 1} of ${items.length}`;
+    if (options.announce) requestAnimationFrame(() => status.setAttribute('aria-live', 'off'));
+    if (options.focus) cards[index]?.focus({ preventScroll: true });
   }
 
-  function initScroll() {
-    if (showingAll) return;
-    const cards = [...list.children];
-    if (cards.length <= 1) return;
-    const cardHeight = cards[0].offsetHeight + 16;
-    const totalHeight = cardHeight * cards.length;
-    scrollContainer.style.setProperty('--scroll-distance', `${totalHeight}px`);
-    scrollContainer.classList.add('is-scrolling');
-    duplicateForLoop();
+  function restartTimer() {
+    stopTimer();
+    if (staticMode() || explicitlyPaused || hoverPaused || focusPaused || document.hidden || newest.length < 2) return;
+    timer = window.setInterval(() => { index = (index + 1) % newest.length; update(); }, 4500);
   }
 
-  function showAll() {
-    showingAll = true;
-    scrollContainer.classList.remove('is-scrolling');
-    renderCards(sorted);
-    viewAllBtn.setAttribute('aria-expanded', 'true');
-    viewAllBtn.querySelector('span').textContent = 'Show less';
+  function move(delta, focus = false, announce = true) {
+    if (expanded) return;
+    index += delta;
+    update({ focus, announce });
+    restartTimer();
   }
 
-  function showTop5() {
-    showingAll = false;
-    renderCards(top5);
-    initScroll();
-    viewAllBtn.setAttribute('aria-expanded', 'false');
-    viewAllBtn.querySelector('span').textContent = 'View all';
+  function render(items) {
+    track.replaceChildren(...items.map(achievementCard));
+    requestAnimationFrame(() => update());
   }
 
-  viewAllBtn.addEventListener('click', () => {
-    if (showingAll) showTop5();
-    else showAll();
+  previous.addEventListener('click', () => move(-1, true));
+  next.addEventListener('click', () => move(1, true));
+  pause.addEventListener('click', () => {
+    explicitlyPaused = !explicitlyPaused;
+    pause.setAttribute('aria-pressed', String(explicitlyPaused));
+    pause.textContent = explicitlyPaused ? 'Play' : 'Pause';
+    restartTimer();
+  });
+  viewAll.addEventListener('click', () => {
+    expanded = !expanded;
+    index = 0;
+    viewAll.setAttribute('aria-expanded', String(expanded));
+    viewAll.firstChild.textContent = expanded ? 'Show newest ' : 'View all ';
+    viewport.setAttribute('aria-label', expanded ? 'All achievements' : 'Newest achievements');
+    render(expanded ? all : newest);
+    restartTimer();
   });
 
-  renderCards(top5);
-  initScroll();
-
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  reducedMotion.addEventListener?.('change', () => {
-    if (reducedMotion.matches) {
-      scrollContainer.classList.remove('is-scrolling');
-      scrollContainer.style.overflowY = 'auto';
-    } else if (!showingAll) {
-      scrollContainer.style.overflowY = 'hidden';
-      initScroll();
-    }
+  interactionRegion.addEventListener('mouseenter', () => { hoverPaused = true; restartTimer(); });
+  interactionRegion.addEventListener('mouseleave', () => { hoverPaused = false; restartTimer(); });
+  interactionRegion.addEventListener('focusin', () => { focusPaused = true; restartTimer(); });
+  interactionRegion.addEventListener('focusout', (event) => {
+    if (!interactionRegion.contains(event.relatedTarget)) { focusPaused = false; restartTimer(); }
   });
+  viewport.addEventListener('wheel', (event) => {
+    if (expanded || Math.abs(event.deltaY) < 8) return;
+    event.preventDefault();
+    const now = performance.now();
+    if (now - lastWheelAt < 450) return;
+    lastWheelAt = now;
+    move(event.deltaY > 0 ? 1 : -1);
+  }, { passive: false });
+  viewport.addEventListener('keydown', (event) => {
+    if (expanded || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+    event.preventDefault();
+    move(event.key === 'ArrowDown' ? 1 : -1, true);
+  });
+  viewport.addEventListener('touchstart', (event) => { touchX = event.changedTouches[0].clientX; }, { passive: true });
+  viewport.addEventListener('touchend', (event) => {
+    if (touchX === null || expanded) return;
+    const distance = touchX - event.changedTouches[0].clientX;
+    if (Math.abs(distance) > 30) move(distance > 0 ? 1 : -1);
+    touchX = null;
+  }, { passive: true });
+  reduced.addEventListener?.('change', () => { update(); restartTimer(); });
+  document.addEventListener('visibilitychange', restartTimer);
+  window.addEventListener('resize', () => update());
+
+  render(newest);
+  restartTimer();
 }
 
 function renderNotFound(container) {
   const block = makeElement('div', 'not-found');
-  block.append(
-    makeElement('p', 'eyebrow', 'Archive note'),
-    makeElement('h1', '', 'That story is not here.'),
-    makeElement('p', '', 'The achievement ID may be missing, outdated, or mistyped. The rest of the archive is still waiting for you.')
-  );
-  const home = makeElement('a', 'ink-link', 'Return to achievements');
+  block.append(makeElement('p', 'eyebrow', 'Archive note'), makeElement('h1', '', 'That story is not here.'), makeElement('p', '', 'The achievement ID may be missing, outdated, or mistyped. The rest of the archive is still waiting for you.'));
+  const home = makeElement('a', 'detail-link', 'Return to achievements');
   home.href = 'index.html#achievements';
   block.append(home);
   container.replaceChildren(block);
-  document.title = `Achievement not found — ${content?.profile?.name || 'AnNT'}`;
+  document.title = `Achievement not found — ${content.profile?.name || 'AnNT'}`;
 }
 
-function renderAchievementDetail() {
+function renderDetail() {
   const container = document.querySelector('[data-achievement-detail]');
-  if (!container || !content?.achievements) return;
+  if (!container) return;
   const id = new URLSearchParams(window.location.search).get('id');
-  const item = content.achievements.find((entry) => entry.id === id);
+  const item = sortedAchievements().find((entry) => entry.id === id);
   if (!item) { renderNotFound(container); return; }
-
   const visual = makeElement('figure', 'detail-visual');
-  const image = new Image();
-  image.src = item.image;
-  image.alt = item.imageAlt;
-  visual.append(image);
-  installImageFallback(image, visual, `${item.title} — image unavailable`);
-
+  imageWithFallback(item, visual);
   const copy = makeElement('div', 'detail-copy');
-  copy.append(
-    makeElement('p', 'eyebrow', `${item.category} · ${item.year}${item.placeholder ? ' · demo content' : ''}`),
-    makeElement('h1', '', item.title),
-    makeElement('p', 'detail-summary', item.summary),
-    makeElement('p', 'detail-story', item.story)
-  );
-
+  copy.append(makeElement('p', 'eyebrow', `${item.category} · ${item.year}${item.placeholder ? ' · demo content' : ''}`), makeElement('h1', '', item.title), makeElement('p', 'detail-summary', item.summary), makeElement('p', 'detail-story', item.story));
   const facts = makeElement('ul', 'facts');
   (Array.isArray(item.facts) ? item.facts : []).forEach((fact) => facts.append(makeElement('li', '', fact)));
-  copy.append(facts);
-
+  if (facts.children.length) copy.append(facts);
   const links = makeElement('div', 'detail-links');
-  (Array.isArray(item.links) ? item.links : []).forEach((itemLink) => {
-    const link = makeElement('a', 'ink-link', itemLink.label);
+  (Array.isArray(item.links) ? item.links : []).filter((link) => link.url).forEach((itemLink) => {
+    const link = makeElement('a', 'detail-link', itemLink.label);
     link.href = itemLink.url;
-    if (/^https?:/.test(itemLink.url)) { link.target = '_blank'; link.rel = 'noreferrer'; }
+    if (/^https?:/i.test(itemLink.url)) { link.target = '_blank'; link.rel = 'noreferrer'; }
     links.append(link);
   });
-  const back = makeElement('a', 'ink-link', '← Back to archive');
+  const back = makeElement('a', 'detail-link', '← Back to archive');
   back.href = 'index.html#achievements';
   links.append(back);
   copy.append(links);
-
   container.replaceChildren(visual, copy);
-  document.title = `${item.title} — ${content?.profile?.name || 'AnNT'}`;
+  document.title = `${item.title} — ${content.profile?.name || 'AnNT'}`;
 }
 
 renderIdentity();
 if (document.body.dataset.page === 'home') {
-  renderProfile();
-  setupAchievements();
-} else if (document.body.dataset.page === 'achievement') {
-  renderAchievementDetail();
+  renderProfile(); renderGallery(); setupAchievements();
+} else {
+  renderDetail();
 }

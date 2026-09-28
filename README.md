@@ -1,16 +1,16 @@
-# AnNT — Personal Archive
+# AnNT — Editorial Achievement Portfolio
 
-A static GitHub Pages portfolio shaped as a soft blue-and-ivory editorial scrapbook. The supplied reference image is published unchanged at `assets/editorial-reference.jpg` and appears on the home page. Achievement and gallery entries in this version are visibly labelled as demo or placeholder content.
+A static blue-and-ivory portfolio inspired by the supplied editorial composition. The original reference remains unchanged at `assets/editorial-reference.jpg` and is credited on the home page. Every included photograph and achievement is visibly marked as placeholder or demo content.
 
-## Run and test locally
+## Preview and test
 
-There is no build step:
+There is no build step. From the repository root:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Open `http://localhost:8000`. To run the browser coverage:
+Open `http://localhost:8000`. Browser tests use Playwright:
 
 ```bash
 npm install
@@ -18,23 +18,21 @@ npx playwright install chromium
 npm test
 ```
 
-The tests cover desktop and mobile layouts, keyboard activation, carousel controls, reduced motion, unavailable images, direct and unknown detail URLs, no-JavaScript rendering, and a simulated `/AnNT.github.io/` project path.
+The suite covers desktop and phone layouts, newest-five ordering, the complete archive, pointer/wheel/keyboard/touch/button controls, reduced motion, missing images, empty data, direct and unknown detail URLs, no JavaScript, and a simulated `/AnNT.github.io/` project path.
 
-## Replace the content
+## Edit the portfolio
 
-All personal, photo, and achievement data lives in [`content.js`](content.js). No rebuild is required after editing it.
+All data-driven content lives in [`content.js`](content.js). Editing it updates the home and reusable achievement page without a build. The short fallback strings in `index.html` and `achievement.html` are deliberately duplicated for visitors without JavaScript (or when the application script fails); update those too whenever the identity, archive purpose, or sample-entry fallback changes.
 
-- `profile`: change the display name, role line, introduction, note, and public links. Leave a URL as an empty string to keep its control visibly disabled. The included LinkedIn and CV entries intentionally have no fake destinations.
-- `gallery.items`: replace `image`, `alt`, `title`, and `caption`. Set `placeholder: false` after adding a real personal image. Common landscape and portrait ratios are accepted through `object-fit: cover`; missing files show a styled fallback.
-- `achievements`: use a unique URL-safe `id`, then edit the summary, full story, facts, optional links, and image metadata. Set `placeholder: false` only when the content describes a real, verified milestone. A card automatically links to `achievement.html?id=YOUR_ID`.
-- Add or remove array items freely. The home rail and reusable detail page read the same data.
+- `profile` controls the name, short biography, role, note, GitHub, LinkedIn, and CV. A link with `url: ''` becomes a visibly disabled control, so never add a made-up destination.
+- `gallery.intro` and `gallery.items` control the personal photo section. Replace each `image`, `alt`, `title`, and `caption`, then set `placeholder: false` when it is real content.
+- `achievements` is sorted newest-first by its ISO `date`. Each item needs a unique URL-safe `id`, `title`, `category`, display `year`, summary, story, optional facts/links, and image metadata. Set `placeholder: false` only for a real milestone.
+- The home filmstrip uses the newest five records. “View all” reveals every record. Each stable detail URL is `achievement.html?id=YOUR_ID`.
 
-Keep image paths relative, such as `assets/my-photo.jpg`, so the site works both at a domain root and under `/AnNT.github.io/`. The neutral SVG files in `assets/` are safe placeholders to overwrite by changing the paths in `content.js`; the original supplied JPEG should not be cropped or overwritten.
+Landscape and portrait images are composed with `object-fit: cover`; missing files reveal a text fallback. Keep paths relative, such as `assets/my-photo.jpg`, so root and project-subpath publishing both work. Do not overwrite or crop `assets/editorial-reference.jpg`.
 
-The short no-JavaScript copy in `index.html` and `achievement.html` is a resilience fallback, not a second content store. Update it only if the overall purpose of the site changes.
+## Publish with GitHub Pages
 
-## GitHub Pages
+The site is designed to publish from the repository root. In **Settings → Pages**, select **Deploy from a branch**, then the intended branch and `/ (root)`. All CSS, scripts, images, home links, and detail links use relative URLs.
 
-The repository is served directly from the root of `main`. In **Settings → Pages**, choose **Deploy from a branch**, `main`, and `/ (root)`. Keep `.nojekyll` tracked. Every internal URL is relative, including the stylesheet, scripts, detail links, favicon, reference JPEG, and placeholder art.
-
-After deploying, verify both the home page and a direct detail URL such as `achievement.html?id=first-steps`.
+After publishing, check the home page and a direct route such as `achievement.html?id=first-steps`. Deployment is intentionally not automated by this repository.
