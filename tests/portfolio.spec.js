@@ -11,275 +11,262 @@ async function overrideContent(page, sourceAddition) {
   });
 }
 
-test('desktop and phone show the full editorial composition without horizontal overflow', async ({ page }) => {
-  for (const viewport of [{ width: 1440, height: 950 }, { width: 390, height: 844 }]) {
-    await page.setViewportSize(viewport);
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'AnNT' })).toBeVisible();
-    await expect(page.locator('.reference-card img')).toHaveAttribute('src', 'assets/editorial-reference.jpg');
-    await expect(page.getByText('LinkedIn soon')).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByText('CV soon')).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.locator('[data-gallery] .photo')).toHaveCount(3);
-    await expect(page.locator('[data-gallery] figcaption strong').first()).toHaveText('Window light');
-    await expect(page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link')).toHaveCount(3);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  }
+test('desktop first viewport is a near-square 28/72 poster with reference hierarchy', async ({ page }) => {
+  await page.setViewportSize({ width: 1050, height: 1050 });
+  await page.goto('/');
+  const poster = page.locator('.poster-stage');
+  const box = await poster.boundingBox();
+  expect(Math.abs(box.width - box.height)).toBeLessThan(3);
+  const columnHeights = await poster.evaluate((node) => {
+    const stage = node.getBoundingClientRect();
+    const left = node.querySelector('.contact-sheet').getBoundingClientRect();
+    const right = node.querySelector('.feature-poster').getBoundingClientRect();
+    const strip = node.querySelector('.filmstrip').getBoundingClientRect();
+    const fifth = node.querySelector('.achievement-card:nth-child(5)').getBoundingClientRect();
+    const tail = node.querySelector('.title-tail').getBoundingClientRect();
+    const header = node.querySelector('.poster-header').getBoundingClientRect();
+    return {
+      stage: stage.height,
+      left: left.height,
+      right: right.height,
+      fifthStartsInsideStrip: fifth.top < strip.bottom && fifth.top >= strip.top,
+      titleFits: tail.right <= header.right
+    };
+  });
+  expect(columnHeights.left).toBeCloseTo(columnHeights.stage, 0);
+  expect(columnHeights.right).toBeCloseTo(columnHeights.stage, 0);
+  expect(columnHeights.fifthStartsInsideStrip).toBe(true);
+  expect(columnHeights.titleFits).toBe(true);
+  expect(await page.locator('.contact-sheet').evaluate((node) => node.getBoundingClientRect().width / node.closest('.poster-stage').getBoundingClientRect().width)).toBeCloseTo(.28, 1);
+  await expect(page.locator('.poster-header h1')).toHaveText('AnNT');
+  await expect(page.locator('.title-tail')).toHaveText('archive');
+  await expect(page.locator('.hero-field')).toBeVisible();
+  await expect(page.locator('.poster-footer')).toBeVisible();
+  await expect(page.locator('.botanical-top')).toBeVisible();
+  await expect(page.locator('.botanical-bottom')).toBeVisible();
+  await expect(page.locator('.poster-stage')).toHaveCSS('overflow', 'hidden');
+  await expect(page.getByRole('link', { name: 'View all achievements' })).toHaveAttribute('href', 'archive.html');
+  await expect(page.locator('[data-linkedin]')).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('[data-cv]')).toHaveAttribute('aria-disabled', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test('newest five populate the loop and View all exposes the complete dated archive', async ({ page }) => {
+test('the contact sheet contains exactly the newest five linked records in order', async ({ page }) => {
+  await overrideContent(page, 'window.PORTFOLIO_CONTENT.achievements.reverse();');
   await page.goto('/');
   const cards = page.locator('.achievement-card');
   await expect(cards).toHaveCount(5);
-  await expect(cards.first()).toHaveAttribute('href', 'achievement.html?id=first-steps');
-  await expect(cards.last()).toHaveAttribute('href', 'achievement.html?id=useful-details');
-  await expect(page.getByText('An earlier note')).toHaveCount(0);
-
-  const viewAll = page.locator('[data-view-all]');
-  await viewAll.click();
-  await expect(viewAll).toHaveAttribute('aria-expanded', 'true');
-  await expect(cards).toHaveCount(6);
-  await expect(page.getByText('An earlier note')).toBeVisible();
-  await expect(page.locator('[data-carousel-controls]')).toBeHidden();
-  const viewport = page.locator('[data-achievement-viewport]');
-  for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
-    await page.setViewportSize(size);
-    expect(await viewport.evaluate((node) => {
-      const lastCard = node.querySelector('.achievement-card:last-child');
-      const viewportBox = node.getBoundingClientRect();
-      const lastBox = lastCard.getBoundingClientRect();
-      return getComputedStyle(node).overflowY === 'visible'
-        && node.scrollHeight <= node.clientHeight + 1
-        && lastBox.bottom <= viewportBox.bottom + 1;
-    })).toBe(true);
-  }
-
-  await viewAll.click();
-  await expect(cards).toHaveCount(5);
-  await expect(viewAll).toHaveAttribute('aria-expanded', 'false');
-});
-
-test('shuffled dated achievements are sorted newest-first before selecting five', async ({ page }) => {
-  await overrideContent(page, `window.PORTFOLIO_CONTENT.achievements = [window.PORTFOLIO_CONTENT.achievements[5], window.PORTFOLIO_CONTENT.achievements[2], window.PORTFOLIO_CONTENT.achievements[4], window.PORTFOLIO_CONTENT.achievements[0], window.PORTFOLIO_CONTENT.achievements[3], window.PORTFOLIO_CONTENT.achievements[1]];`);
-  await page.goto('/');
-  expect(await page.locator('.achievement-card').evaluateAll((cards) => cards.map((card) => card.getAttribute('href')))).toEqual([
+  expect(await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href')))).toEqual([
     'achievement.html?id=first-steps',
     'achievement.html?id=patient-practice',
     'achievement.html?id=room-to-grow',
     'achievement.html?id=small-systems',
     'achievement.html?id=useful-details'
   ]);
+  await expect(cards.first().locator('.frame-image img')).toHaveAttribute('src', 'assets/achievement-placeholder-01.svg');
+  await expect(cards.last().locator('.frame-meta')).toContainText('2026');
+  await expect(cards.first()).toHaveAccessibleName('First steps, carefully made, Learning note, 2026, demo content');
+  await expect(cards.first().locator('.frame-meta')).toContainText('First steps, carefully made');
 });
 
-test('rail translation uses the selected card position when card heights differ', async ({ page }) => {
-  await page.goto('/');
-  const cards = page.locator('.achievement-card');
-  await cards.nth(0).evaluate((card) => { card.style.minHeight = '235px'; });
-  await page.locator('[data-achievement-viewport]').evaluate((node) => node.dispatchEvent(new Event('resize')));
-  const expectedOffset = await cards.evaluateAll((items) => items[1].offsetTop - items[0].offsetTop);
-  await page.locator('[data-next]').click();
-  await expect(page.locator('[data-achievement-track]')).toHaveAttribute('style', new RegExp(`translateY\\(-${expectedOffset}px\\)`));
-});
-
-test('buttons, wheel, keyboard, focus, and pointer pause keep the rail predictable', async ({ page }) => {
+test('autoplay, pointer/focus pause, buttons, wheel, and keyboard are predictable without trapping wheel scroll', async ({ page }) => {
   await page.addInitScript(() => {
-    const intervals = new Map();
-    let nextId = 1;
+    const intervals = new Map(); let nextId = 1;
     window.setInterval = (callback) => { const id = nextId++; intervals.set(id, callback); return id; };
     window.clearInterval = (id) => intervals.delete(id);
     window.__runIntervals = () => intervals.forEach((callback) => callback());
   });
   await page.goto('/');
-  const track = page.locator('[data-achievement-track]');
   const viewport = page.locator('[data-achievement-viewport]');
   const status = page.locator('[data-carousel-status]');
-  const pause = page.locator('[data-pause]');
   await expect(status).toHaveText('1 of 5');
-
   await page.evaluate(() => window.__runIntervals());
   await expect(status).toHaveText('2 of 5');
-  await page.locator('[data-previous]').click();
   await viewport.hover();
   await page.evaluate(() => window.__runIntervals());
-  await expect(status).toHaveText('1 of 5');
+  await expect(status).toHaveText('2 of 5');
   await viewport.focus();
-  await page.mouse.move(0, 0);
-  await page.evaluate(() => window.__runIntervals());
-  await expect(status).toHaveText('1 of 5');
-  await page.locator('[data-next]').focus();
-  await page.evaluate(() => window.__runIntervals());
-  await expect(status).toHaveText('1 of 5');
-  await page.locator('.wordmark').focus();
+  await page.mouse.move(1100, 1000);
   await page.evaluate(() => window.__runIntervals());
   await expect(status).toHaveText('2 of 5');
-  await page.locator('[data-previous]').click();
-  await page.mouse.move(0, 0);
-  await page.locator('.wordmark').focus();
-
+  await page.locator('.reference-note a').focus();
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
     document.dispatchEvent(new Event('visibilitychange'));
     window.__runIntervals();
   });
-  await expect(status).toHaveText('1 of 5');
+  await expect(status).toHaveText('2 of 5');
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     document.dispatchEvent(new Event('visibilitychange'));
-    window.__runIntervals();
   });
-  await expect(status).toHaveText('2 of 5');
-  await page.locator('[data-previous]').click();
-
-  await pause.click();
-  await expect(pause).toHaveText('Play');
-  await expect(pause).toHaveAttribute('aria-pressed', 'true');
-  const firstTransform = await track.evaluate((node) => node.style.transform);
+  await page.locator('[data-next]').focus();
   await page.evaluate(() => window.__runIntervals());
-  expect(await track.evaluate((node) => node.style.transform)).toBe(firstTransform);
-
+  await expect(status).toHaveText('2 of 5');
+  await page.mouse.move(1100, 1000);
+  await page.locator('[data-pause]').click();
+  await expect(page.locator('[data-pause]')).toHaveText('Play');
   await page.locator('[data-next]').click();
-  await expect(status).toHaveText('2 of 5');
-  await page.locator('[data-previous]').click();
-  await expect(status).toHaveText('1 of 5');
-  await viewport.evaluate((node) => node.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true })));
-  await expect(status).toHaveText('2 of 5');
-  await viewport.evaluate((node) => node.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true })));
-  await expect(status).toHaveText('2 of 5');
+  await expect(status).toHaveText('3 of 5');
+  await expect(page.locator('[data-achievement-track]')).not.toHaveCSS('transform', 'none');
+  const prevented = await viewport.evaluate((node) => {
+    const event = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true });
+    node.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(prevented).toBe(false);
+  await expect(status).toHaveText('4 of 5');
   await viewport.focus();
   await page.keyboard.press('ArrowDown');
-  await expect(status).toHaveText('3 of 5');
-  await expect(page.locator('.achievement-card[tabindex="0"]')).toHaveAttribute('href', 'achievement.html?id=room-to-grow');
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/achievement\.html\?id=room-to-grow/);
+  await expect(status).toHaveText('5 of 5');
+  await page.keyboard.press('ArrowDown');
+  await expect(status).toHaveText('1 of 5');
+  await expect(page.locator('.achievement-card[aria-current="true"]')).toHaveAttribute('href', 'achievement.html?id=first-steps');
+  await page.waitForTimeout(700);
+  expect(await viewport.evaluate((node) => {
+    const selected = node.querySelector('.achievement-card[aria-current="true"]').getBoundingClientRect();
+    const bounds = node.getBoundingClientRect();
+    return selected.top >= bounds.top - 1 && selected.top < bounds.bottom;
+  })).toBe(true);
 });
 
-test('touch swipe moves the rail and card links remain tappable', async ({ browser }) => {
-  const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
+test('complete archive exposes every dated record and links each one to details', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'View all achievements' }).click();
+  await expect(page).toHaveURL(/\/archive\.html$/);
+  const cards = page.locator('[data-archive-grid] .achievement-card');
+  await expect(cards).toHaveCount(6);
+  await expect(cards.last()).toHaveAttribute('href', 'achievement.html?id=earlier-note');
+  await cards.last().click();
+  await expect(page.locator('.detail-copy h1')).toHaveText('An earlier note');
+});
+
+test('horizontal touch gesture selects and reveals a mobile frame while preserving vertical panning', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, viewport: { width: 700, height: 900 } });
   const page = await context.newPage();
   await page.goto('/');
   const viewport = page.locator('[data-achievement-viewport]');
   await expect(viewport).toHaveCSS('touch-action', 'pan-y');
-  const box = await viewport.boundingBox();
-  await page.touchscreen.tap(box.x + box.width / 2, box.y + 350);
-  const touchTarget = await viewport.elementHandle();
-  await viewport.dispatchEvent('touchstart', { changedTouches: [{ identifier: 1, target: touchTarget, clientX: 300, clientY: 350, pageX: 300, pageY: 350, screenX: 300, screenY: 350 }] });
-  await viewport.dispatchEvent('touchend', { changedTouches: [{ identifier: 1, target: touchTarget, clientX: 180, clientY: 350, pageX: 180, pageY: 350, screenX: 180, screenY: 350 }] });
+  const handle = await viewport.elementHandle();
+  await viewport.dispatchEvent('touchstart', { changedTouches: [{ identifier: 1, target: handle, clientX: 300, clientY: 220, pageX: 300, pageY: 220, screenX: 300, screenY: 220 }] });
+  await viewport.dispatchEvent('touchend', { changedTouches: [{ identifier: 1, target: handle, clientX: 180, clientY: 220, pageX: 180, pageY: 220, screenX: 180, screenY: 220 }] });
   await expect(page.locator('[data-carousel-status]')).toHaveText('2 of 5');
-  await page.locator('.achievement-card[href*="patient-practice"]').tap();
-  await expect(page).toHaveURL(/achievement\.html\?id=patient-practice/);
+  expect(await viewport.evaluate((node) => {
+    const selected = node.querySelector('.achievement-card[aria-current="true"]');
+    const viewportBox = node.getBoundingClientRect();
+    const selectedBox = selected.getBoundingClientRect();
+    return selectedBox.left >= viewportBox.left && selectedBox.right <= viewportBox.right;
+  })).toBe(true);
   await context.close();
 });
 
-test('configured identity, biography, links, gallery, and records propagate from content.js', async ({ page }) => {
-  await overrideContent(page, `Object.assign(window.PORTFOLIO_CONTENT.profile, {name: 'Nova Reed', role: 'designer · developer', bio: 'A replaced biography.', note: 'A replaced note.', github: {label: 'Nova on GitHub', url: 'https://github.com/nova'}, linkedin: {label: 'Nova on LinkedIn', url: 'https://linkedin.com/in/nova'}});`);
+test('mobile reflows poster then contact sheet with readable targets and no overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const order = await page.locator('.poster-stage > *').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).order));
+  expect(order).toEqual(['2', '0']);
+  await expect(page.locator('.feature-poster')).toBeVisible();
+  await expect(page.locator('.achievement-card')).toHaveCount(5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.locator('.ink-link').first().evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+});
+
+test('content overrides propagate and empty/missing media show authored fallbacks', async ({ page }) => {
+  await overrideContent(page, `Object.assign(window.PORTFOLIO_CONTENT.profile, {name:'Nova Reed', bio:'A replaced biography.', linkedin:{label:'LinkedIn later',url:''}}); window.PORTFOLIO_CONTENT.gallery.items=[]; window.PORTFOLIO_CONTENT.achievements=[];`);
   await page.goto('/');
   await expect(page.locator('h1')).toHaveText('Nova Reed');
-  await expect(page.locator('[data-role]')).toHaveText('designer · developer');
   await expect(page.locator('[data-bio]')).toHaveText('A replaced biography.');
-  await expect(page.locator('[data-note]')).toHaveText('A replaced note.');
-  await expect(page.locator('[data-github]')).toHaveAttribute('href', 'https://github.com/nova');
-  await expect(page.locator('[data-linkedin]')).toHaveAttribute('href', 'https://linkedin.com/in/nova');
-  await expect(page.locator('.wordmark')).toHaveText('Nova Reed');
-  await expect(page).toHaveTitle('Nova Reed — Personal Archive');
-  await expect(page.locator('[data-profile-description]')).toHaveAttribute('content', /Nova Reed/);
-  await page.goto('/achievement.html?id=first-steps');
-  await expect(page.locator('.wordmark')).toHaveText('Nova Reed');
-  await expect(page.locator('.wordmark')).toHaveAttribute('aria-label', 'Nova Reed home');
-  await expect(page).toHaveTitle('First steps, carefully made — Nova Reed');
-  await expect(page.locator('[data-profile-description]')).toHaveAttribute('content', /Nova Reed/);
-});
-
-test('intentionally empty configured strings do not reveal fallback sample copy', async ({ page }) => {
-  await overrideContent(page, `window.PORTFOLIO_CONTENT.profile.bio = ''; window.PORTFOLIO_CONTENT.profile.note = ''; window.PORTFOLIO_CONTENT.gallery.intro = '';`);
-  await page.goto('/');
-  await expect(page.locator('[data-bio]')).toHaveText('');
-  await expect(page.locator('[data-note]')).toHaveText('');
-  await expect(page.locator('[data-gallery-intro]')).toHaveText('');
-});
-
-test('custom collection growth reaches the home, full archive, and detail story', async ({ page }) => {
-  await overrideContent(page, `window.PORTFOLIO_CONTENT.gallery.items.push({title: 'Added portrait', caption: 'Added photo', image: 'assets/photo-placeholder-01.svg', alt: 'Added portrait placeholder'}); window.PORTFOLIO_CONTENT.achievements.push({id: 'added-entry', title: 'Added entry', category: 'Added note', date: '2024-01-01', year: '2024', summary: 'Added summary', story: 'The added detail story.', image: 'assets/achievement-placeholder-01.svg', imageAlt: 'Added entry placeholder'});`);
-  await page.goto('/');
-  await expect(page.locator('[data-gallery] .photo')).toHaveCount(4);
-  await expect(page.getByText('Added portrait', { exact: true })).toBeVisible();
-  await page.locator('[data-view-all]').click();
-  await expect(page.locator('.achievement-card')).toHaveCount(7);
-  await page.locator('.achievement-card[href="achievement.html?id=added-entry"]').click();
-  await expect(page.locator('.detail-copy h1')).toHaveText('Added entry');
-  await expect(page.getByText('The added detail story.')).toBeVisible();
-});
-
-test('detail records tolerate omitted optional facts and links', async ({ page }) => {
-  await overrideContent(page, `delete window.PORTFOLIO_CONTENT.achievements[0].facts; delete window.PORTFOLIO_CONTENT.achievements[0].links;`);
-  await page.goto('/achievement.html?id=first-steps');
-  await expect(page.locator('.detail-copy h1')).toHaveText('First steps, carefully made');
-  await expect(page.locator('.facts')).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Back to archive' })).toBeVisible();
-});
-
-test('known and unknown achievement URLs render complete useful outcomes', async ({ page }) => {
-  await page.goto('/achievement.html?id=patient-practice');
-  await expect(page.locator('.detail-copy h1')).toHaveText('Patient practice');
-  await expect(page.getByText('Demo entry — not a real credential')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'GitHub profile' })).toHaveAttribute('href', 'https://github.com/AnNT-k7');
-  await expect(page.getByRole('link', { name: 'Back to archive' })).toHaveAttribute('href', 'index.html#achievements');
-  await page.goto('/achievement.html?id=does-not-exist');
-  await expect(page.getByRole('heading', { name: 'That story is not here.' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Return to achievements' })).toBeVisible();
-});
-
-test('empty content creates authored fallbacks and disables unavailable behavior', async ({ page }) => {
-  await overrideContent(page, `window.PORTFOLIO_CONTENT.gallery.items = []; window.PORTFOLIO_CONTENT.achievements = []; window.PORTFOLIO_CONTENT.profile.github = {label: 'GitHub soon', url: ''};`);
-  await page.goto('/');
+  await expect(page.getByText('LinkedIn later')).toHaveAttribute('aria-disabled', 'true');
   await expect(page.getByText('Photographs will be added here when they are ready to share.')).toBeVisible();
   await expect(page.getByText('Achievement notes will appear here as the archive grows.')).toBeVisible();
   await expect(page.locator('[data-carousel-controls]')).toBeHidden();
-  await expect(page.locator('[data-carousel-controls] button').first()).toBeDisabled();
-  await expect(page.locator('[data-github]')).toHaveText('GitHub soon');
-  await expect(page.locator('[data-github]')).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.locator('[data-github]')).not.toHaveAttribute('href', /.+/);
+
+  const missingPage = await page.context().newPage();
+  await missingPage.route('**/photo-placeholder-01.svg', (route) => route.abort());
+  await missingPage.route('**/achievement-placeholder-01.svg', (route) => route.abort());
+  await missingPage.goto('/');
+  await expect(missingPage.locator('.photo').first()).toHaveClass(/is-missing/);
+  await expect(missingPage.locator('.photo .image-fallback').first()).toContainText('Window light');
+  await expect(missingPage.locator('.achievement-card').first().locator('.frame-image')).toHaveClass(/is-missing/);
+  await expect(missingPage.locator('.achievement-card').first().locator('.image-fallback')).toContainText('First steps');
 });
 
-test('reduced motion removes autoplay while preserving all newest cards and manual controls', async ({ browser }) => {
+test('configured profile fields and identity propagate through home and detail metadata', async ({ page }) => {
+  await overrideContent(page, `Object.assign(window.PORTFOLIO_CONTENT.profile, {name:'Nova Reed Portfolio Atelier', role:'designer · developer', bio:'A replaced biography.', note:'A replaced note.', github:{label:'Nova on GitHub',url:'https://github.com/nova'}, linkedin:{label:'Nova on LinkedIn',url:'https://linkedin.com/in/nova'}});`);
+  await page.goto('/');
+  await expect(page.locator('.poster-header')).toHaveClass(/identity-long/);
+  expect(await page.locator('.poster-header').evaluate((header) => {
+    const name = header.querySelector('h1').getBoundingClientRect();
+    const bounds = header.getBoundingClientRect();
+    return name.right <= bounds.right && name.bottom <= bounds.bottom;
+  })).toBe(true);
+  await expect(page.locator('[data-role]')).toHaveText('designer · developer');
+  await expect(page.locator('[data-note]')).toHaveText('A replaced note.');
+  await expect(page.locator('[data-github]')).toHaveAttribute('href', 'https://github.com/nova');
+  await expect(page.locator('[data-linkedin]')).toHaveAttribute('href', 'https://linkedin.com/in/nova');
+  await page.goto('/achievement.html?id=first-steps');
+  await expect(page.locator('.detail-home')).toContainText('Nova Reed Portfolio Atelier / home');
+  await expect(page.locator('.detail-home')).toHaveAttribute('aria-label', 'Nova Reed Portfolio Atelier home');
+  await expect(page).toHaveTitle('First steps, carefully made — Nova Reed Portfolio Atelier');
+  await expect(page.locator('[data-profile-description]')).toHaveAttribute('content', /Nova Reed Portfolio Atelier/);
+});
+
+test('detail rendering tolerates omitted optional facts and links and missing media', async ({ page }) => {
+  await overrideContent(page, 'delete window.PORTFOLIO_CONTENT.achievements[0].facts; delete window.PORTFOLIO_CONTENT.achievements[0].links;');
+  await page.route('**/achievement-placeholder-01.svg', (route) => route.abort());
+  await page.goto('/achievement.html?id=first-steps');
+  await expect(page.locator('.detail-copy h1')).toHaveText('First steps, carefully made');
+  await expect(page.locator('.facts')).toHaveCount(0);
+  await expect(page.locator('.detail-visual')).toHaveClass(/is-missing/);
+  await expect(page.locator('.detail-visual .image-fallback')).toContainText('First steps');
+  await expect(page.getByRole('link', { name: 'Back to archive' })).toBeVisible();
+});
+
+test('reduced motion renders a static accessible newest-five list', async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.locator('[data-achievement-track]')).toHaveCSS('transform', 'none');
-  await expect(page.locator('.achievement-card')).toHaveCount(5);
   await expect(page.locator('.achievement-card[tabindex="0"]')).toHaveCount(5);
   await expect(page.locator('[data-carousel-controls]')).toBeHidden();
   await context.close();
 });
 
-test('missing gallery and detail images expose styled text fallbacks', async ({ page }) => {
-  await page.route('**/photo-placeholder-01.svg', (route) => route.abort());
-  await page.goto('/');
-  const photo = page.locator('[data-gallery] .photo').first();
-  await expect(photo).toHaveClass(/is-missing/);
-  await expect(photo.locator('.image-fallback')).toContainText('Window light');
-  await page.route('**/achievement-placeholder-01.svg', (route) => route.abort());
-  await page.goto('/achievement.html?id=first-steps');
-  await expect(page.locator('.detail-visual')).toHaveClass(/is-missing/);
-  await expect(page.locator('.detail-visual .image-fallback')).toContainText('First steps');
+test('detail and unknown routes remain complete and use matching poster treatment', async ({ page }) => {
+  await page.goto('/achievement.html?id=patient-practice');
+  await expect(page.locator('.detail-sheet')).toBeVisible();
+  await expect(page.locator('.detail-copy h1')).toHaveText('Patient practice');
+  await expect(page.getByText('Demo entry — not a real credential')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Back to archive' })).toHaveAttribute('href', 'index.html#achievements');
+  await page.goto('/achievement.html?id=unknown');
+  await expect(page.getByRole('heading', { name: 'That story is not here.' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Return to achievements' })).toBeVisible();
+  await page.goto('/achievement.html?id=earlier-note');
+  await expect(page.locator('.detail-copy h1')).toHaveText('An earlier note');
 });
 
-test('no JavaScript and a failed application script retain identity, navigation, and truthful fallback copy', async ({ browser, page }) => {
+test('no JavaScript keeps identity, profile navigation, and a detail route available', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
-  const noJsPage = await context.newPage();
-  await noJsPage.goto('/');
-  await expect(noJsPage.getByRole('heading', { name: 'AnNT' })).toBeVisible();
-  await expect(noJsPage.getByRole('link', { name: 'GitHub' })).toBeVisible();
-  await expect(noJsPage.getByRole('link', { name: 'open this sample entry' })).toHaveAttribute('href', 'achievement.html?id=first-steps');
-  await noJsPage.goto('/achievement.html?id=first-steps');
-  await expect(noJsPage.getByText('This page needs JavaScript to match the requested archive entry.')).toBeVisible();
+  const page = await context.newPage();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'AnNT' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'GitHub' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'open this sample entry' })).toHaveAttribute('href', 'achievement.html?id=first-steps');
+  await page.goto('/achievement.html?id=first-steps');
+  await expect(page.getByText('This page needs JavaScript to match the requested archive entry.')).toBeVisible();
   await context.close();
+});
 
+test('a failed application script retains identifiable fallback content and navigation', async ({ page }) => {
   await page.route('**/script.js', (route) => route.abort());
   await page.goto('/');
   await expect(page.locator('.placeholder-card')).toHaveAttribute('href', 'achievement.html?id=first-steps');
+  await expect(page.locator('.placeholder-card .frame-meta')).toContainText('First steps, carefully made');
+  await expect(page.getByRole('link', { name: 'GitHub' })).toBeVisible();
   await expect(page.locator('[data-carousel-controls]')).toBeHidden();
 });
 
-test('resources and stable detail navigation work beneath a GitHub Pages project subpath', async ({ page }) => {
+test('reference and relative resources work beneath a GitHub Pages project subpath', async ({ page }) => {
   await page.route('**/AnNT.github.io/**', async (route) => {
     const url = new URL(route.request().url());
     let relative = decodeURIComponent(url.pathname.replace(/^\/AnNT\.github\.io\/?/, '')) || 'index.html';
@@ -293,7 +280,15 @@ test('resources and stable detail navigation work beneath a GitHub Pages project
     } catch { await route.fulfill({ status: 404, body: 'not found' }); }
   });
   await page.goto('http://127.0.0.1:8765/AnNT.github.io/');
-  await expect(page.locator('.reference-card img')).toBeVisible();
+  const referenceLink = page.getByRole('link', { name: 'View the unchanged reference.' });
+  await expect(referenceLink).toHaveAttribute('href', 'reference_pic.jpg');
+  const [referenceResponse] = await Promise.all([
+    page.waitForResponse((response) => response.url().endsWith('/AnNT.github.io/reference_pic.jpg')),
+    referenceLink.click()
+  ]);
+  expect(referenceResponse.ok()).toBe(true);
+  expect(referenceResponse.headers()['content-type']).toBe('image/jpeg');
+  await page.goBack();
   await page.locator('.achievement-card').first().click();
   await expect(page).toHaveURL(/\/AnNT\.github\.io\/achievement\.html\?id=first-steps/);
   await expect(page.locator('.detail-copy h1')).toHaveText('First steps, carefully made');

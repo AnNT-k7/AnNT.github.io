@@ -34,15 +34,21 @@ function renderLink(current, data, key) {
 }
 
 function renderIdentity() {
-  const profile = content.profile || {};
-  const name = profile.name || 'AnNT';
+  const name = content.profile?.name || 'AnNT';
+  const posterHeader = document.querySelector('.poster-header');
+  if (posterHeader) {
+    posterHeader.classList.toggle('identity-compact', name.length > 10);
+    posterHeader.classList.toggle('identity-long', name.length > 22);
+  }
   document.querySelectorAll('[data-identity], [data-name]').forEach((node) => { node.textContent = name; });
   document.querySelectorAll('[data-identity-home]').forEach((node) => { node.setAttribute('aria-label', `${name} home`); });
   const description = document.querySelector('[data-profile-description]');
   if (description) description.content = document.body.dataset.page === 'home'
-    ? `${name}'s personal portfolio — a quiet collection of photographs, notes, and milestones.`
+    ? `${name}'s personal portfolio — photographs, notes, and milestones.`
     : `A story from ${name}'s personal achievement archive.`;
-  document.title = document.body.dataset.page === 'home' ? `${name} — Personal Archive` : `Achievement — ${name}`;
+  if (document.body.dataset.page === 'home') document.title = `${name} — Personal Archive`;
+  if (document.body.dataset.page === 'archive') document.title = `Achievement archive — ${name}`;
+  if (document.body.dataset.page === 'achievement') document.title = `Achievement — ${name}`;
 }
 
 function renderProfile() {
@@ -67,8 +73,7 @@ function renderGallery() {
     return;
   }
   gallery.replaceChildren(...items.map((item, index) => {
-    const figure = makeElement('figure', `photo${item.placeholder ? ' placeholder-photo' : ''}`);
-    figure.style.setProperty('--tilt', `${index % 2 ? 1.5 : -1.2}deg`);
+    const figure = makeElement('figure', `photo photo-${index + 1}${item.placeholder ? ' placeholder-photo' : ''}`);
     imageWithFallback(item, figure);
     const caption = document.createElement('figcaption');
     caption.append(makeElement('strong', '', item.title), makeElement('span', '', item.caption));
@@ -83,18 +88,33 @@ function sortedAchievements() {
 }
 
 function achievementCard(item, index) {
-  const card = makeElement('a', 'achievement-card');
+  const card = makeElement('a', `achievement-card${item.placeholder ? ' placeholder-card' : ''}`);
   card.href = `achievement.html?id=${encodeURIComponent(item.id)}`;
   card.dataset.achievementId = item.id;
-  const number = makeElement('span', 'card-index', String(index + 1).padStart(2, '0'));
-  const copy = makeElement('span', 'card-copy');
-  copy.append(
-    makeElement('small', '', `${item.category} · ${item.year}${item.placeholder ? ' · demo' : ''}`),
-    makeElement('strong', '', item.title),
-    makeElement('span', '', item.summary)
+  card.setAttribute('aria-label', `${item.title}, ${item.category}, ${item.year}${item.placeholder ? ', demo content' : ''}`);
+  card.tabIndex = -1;
+  const visual = makeElement('span', 'frame-image');
+  imageWithFallback(item, visual);
+  const meta = makeElement('span', 'frame-meta');
+  meta.append(
+    makeElement('strong', '', item.category),
+    makeElement('em', '', item.title),
+    makeElement('span', '', item.year)
   );
-  card.append(number, copy);
+  card.append(visual, meta);
   return card;
+}
+
+function renderArchive() {
+  const grid = document.querySelector('[data-archive-grid]');
+  if (!grid) return;
+  const items = sortedAchievements();
+  if (!items.length) {
+    grid.replaceChildren(makeElement('p', 'collection-empty', 'Achievement notes will appear here as the archive grows.'));
+    return;
+  }
+  grid.replaceChildren(...items.map((item, index) => achievementCard(item, index)));
+  grid.querySelectorAll('.achievement-card').forEach((card) => { card.tabIndex = 0; });
 }
 
 function setupAchievements() {
@@ -105,15 +125,13 @@ function setupAchievements() {
   const next = document.querySelector('[data-next]');
   const pause = document.querySelector('[data-pause]');
   const status = document.querySelector('[data-carousel-status]');
-  const viewAll = document.querySelector('[data-view-all]');
-  if (!track || !viewport || !controls || !viewAll) return;
+  if (!track || !viewport || !controls || !previous || !next || !pause || !status) return;
   const interactionRegion = viewport.closest('.filmstrip-layout') || viewport;
 
-  const all = sortedAchievements();
-  const newest = all.slice(0, 5);
+  const allItems = sortedAchievements();
+  const items = allItems.slice(0, 5);
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   let index = 0;
-  let expanded = false;
   let explicitlyPaused = false;
   let hoverPaused = false;
   let focusPaused = false;
@@ -121,56 +139,47 @@ function setupAchievements() {
   let touchX = null;
   let lastWheelAt = -Infinity;
 
-  if (!all.length) {
+  if (!items.length) {
     track.replaceChildren(makeElement('p', 'collection-empty', 'Achievement notes will appear here as the archive grows.'));
     viewport.removeAttribute('tabindex');
     controls.hidden = true;
     controls.querySelectorAll('button').forEach((button) => { button.disabled = true; });
-    viewAll.hidden = true;
     return;
   }
 
-  controls.hidden = newest.length < 2;
-  viewAll.hidden = all.length <= newest.length;
+  track.replaceChildren(...items.map((item, i) => achievementCard(item, i)));
+  controls.hidden = reduced.matches || items.length < 2;
 
   const stopTimer = () => { window.clearInterval(timer); timer = undefined; };
-  const staticMode = () => expanded || reduced.matches;
 
   function update(options = {}) {
-    const items = expanded ? all : newest;
     index = ((index % items.length) + items.length) % items.length;
-    track.classList.toggle('is-static', staticMode());
-    viewport.classList.toggle('is-expanded', expanded);
-    controls.hidden = expanded || reduced.matches || newest.length < 2;
     const cards = [...track.querySelectorAll('.achievement-card')];
-    const offset = cards[index] && cards[0] ? cards[index].offsetTop - cards[0].offsetTop : 0;
-    track.style.transform = staticMode() ? 'none' : `translateY(-${offset}px)`;
+    const offset = cards[index] ? cards[index].offsetTop - cards[0].offsetTop : 0;
+    track.style.transform = reduced.matches ? 'none' : `translateY(-${offset}px)`;
     cards.forEach((card, cardIndex) => {
-      card.tabIndex = staticMode() || cardIndex === index ? 0 : -1;
-      card.setAttribute('aria-current', !staticMode() && cardIndex === index ? 'true' : 'false');
+      card.tabIndex = reduced.matches || cardIndex === index ? 0 : -1;
+      card.setAttribute('aria-current', !reduced.matches && cardIndex === index ? 'true' : 'false');
     });
     status.setAttribute('aria-live', options.announce ? 'polite' : 'off');
-    status.textContent = expanded ? `${items.length} archive entries` : `${index + 1} of ${items.length}`;
+    status.textContent = `${index + 1} of ${items.length}`;
     if (options.announce) requestAnimationFrame(() => status.setAttribute('aria-live', 'off'));
     if (options.focus) cards[index]?.focus({ preventScroll: true });
+    if (window.matchMedia('(max-width: 760px)').matches && options.reveal) {
+      cards[index]?.scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
+    }
   }
 
   function restartTimer() {
     stopTimer();
-    if (staticMode() || explicitlyPaused || hoverPaused || focusPaused || document.hidden || newest.length < 2) return;
-    timer = window.setInterval(() => { index = (index + 1) % newest.length; update(); }, 4500);
+    if (reduced.matches || explicitlyPaused || hoverPaused || focusPaused || document.hidden || items.length < 2) return;
+    timer = window.setInterval(() => { index += 1; update(); }, 4500);
   }
 
-  function move(delta, focus = false, announce = true) {
-    if (expanded) return;
+  function move(delta, focus = false, reveal = false) {
     index += delta;
-    update({ focus, announce });
+    update({ announce: true, focus, reveal });
     restartTimer();
-  }
-
-  function render(items) {
-    track.replaceChildren(...items.map(achievementCard));
-    requestAnimationFrame(() => update());
   }
 
   previous.addEventListener('click', () => move(-1, true));
@@ -181,16 +190,6 @@ function setupAchievements() {
     pause.textContent = explicitlyPaused ? 'Play' : 'Pause';
     restartTimer();
   });
-  viewAll.addEventListener('click', () => {
-    expanded = !expanded;
-    index = 0;
-    viewAll.setAttribute('aria-expanded', String(expanded));
-    viewAll.firstChild.textContent = expanded ? 'Show newest ' : 'View all ';
-    viewport.setAttribute('aria-label', expanded ? 'All achievements' : 'Newest achievements');
-    render(expanded ? all : newest);
-    restartTimer();
-  });
-
   interactionRegion.addEventListener('mouseenter', () => { hoverPaused = true; restartTimer(); });
   interactionRegion.addEventListener('mouseleave', () => { hoverPaused = false; restartTimer(); });
   interactionRegion.addEventListener('focusin', () => { focusPaused = true; restartTimer(); });
@@ -198,36 +197,46 @@ function setupAchievements() {
     if (!interactionRegion.contains(event.relatedTarget)) { focusPaused = false; restartTimer(); }
   });
   viewport.addEventListener('wheel', (event) => {
-    if (expanded || Math.abs(event.deltaY) < 8) return;
-    event.preventDefault();
-    const now = performance.now();
-    if (now - lastWheelAt < 450) return;
-    lastWheelAt = now;
+    if (reduced.matches) return;
+    if (Math.abs(event.deltaY) < 12 || performance.now() - lastWheelAt < 500) return;
+    lastWheelAt = performance.now();
     move(event.deltaY > 0 ? 1 : -1);
-  }, { passive: false });
+  }, { passive: true });
   viewport.addEventListener('keydown', (event) => {
-    if (expanded || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+    if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
     event.preventDefault();
     move(event.key === 'ArrowDown' ? 1 : -1, true);
   });
-  viewport.addEventListener('touchstart', (event) => { touchX = event.changedTouches[0].clientX; }, { passive: true });
-  viewport.addEventListener('touchend', (event) => {
-    if (touchX === null || expanded) return;
-    const distance = touchX - event.changedTouches[0].clientX;
-    if (Math.abs(distance) > 30) move(distance > 0 ? 1 : -1);
-    touchX = null;
+  let touchId = null;
+  viewport.addEventListener('touchstart', (event) => {
+    if (reduced.matches || !event.changedTouches.length) return;
+    touchId = event.changedTouches[0].identifier;
+    touchX = event.changedTouches[0].clientX;
   }, { passive: true });
-  reduced.addEventListener?.('change', () => { update(); restartTimer(); });
+  viewport.addEventListener('touchend', (event) => {
+    if (reduced.matches || touchX === null) return;
+    const touch = [...event.changedTouches].find((entry) => entry.identifier === touchId);
+    if (!touch) return;
+    const distance = touchX - touch.clientX;
+    if (Math.abs(distance) > 44) move(distance > 0 ? 1 : -1, false, true);
+    touchX = null;
+    touchId = null;
+  }, { passive: true });
+  reduced.addEventListener?.('change', () => { controls.hidden = reduced.matches || items.length < 2; update(); restartTimer(); });
   document.addEventListener('visibilitychange', restartTimer);
-  window.addEventListener('resize', () => update());
+  window.addEventListener('resize', update);
 
-  render(newest);
+  requestAnimationFrame(update);
   restartTimer();
 }
 
 function renderNotFound(container) {
   const block = makeElement('div', 'not-found');
-  block.append(makeElement('p', 'eyebrow', 'Archive note'), makeElement('h1', '', 'That story is not here.'), makeElement('p', '', 'The achievement ID may be missing, outdated, or mistyped. The rest of the archive is still waiting for you.'));
+  block.append(
+    makeElement('p', 'eyebrow', 'Archive note'),
+    makeElement('h1', '', 'That story is not here.'),
+    makeElement('p', '', 'The achievement ID may be missing, outdated, or mistyped. The rest of the archive is still waiting for you.')
+  );
   const home = makeElement('a', 'detail-link', 'Return to achievements');
   home.href = 'index.html#achievements';
   block.append(home);
@@ -244,7 +253,12 @@ function renderDetail() {
   const visual = makeElement('figure', 'detail-visual');
   imageWithFallback(item, visual);
   const copy = makeElement('div', 'detail-copy');
-  copy.append(makeElement('p', 'eyebrow', `${item.category} · ${item.year}${item.placeholder ? ' · demo content' : ''}`), makeElement('h1', '', item.title), makeElement('p', 'detail-summary', item.summary), makeElement('p', 'detail-story', item.story));
+  copy.append(
+    makeElement('p', 'eyebrow', `${item.category} · ${item.year}${item.placeholder ? ' · demo content' : ''}`),
+    makeElement('h1', '', item.title),
+    makeElement('p', 'detail-summary', item.summary),
+    makeElement('p', 'detail-story', item.story)
+  );
   const facts = makeElement('ul', 'facts');
   (Array.isArray(item.facts) ? item.facts : []).forEach((fact) => facts.append(makeElement('li', '', fact)));
   if (facts.children.length) copy.append(facts);
@@ -265,7 +279,11 @@ function renderDetail() {
 
 renderIdentity();
 if (document.body.dataset.page === 'home') {
-  renderProfile(); renderGallery(); setupAchievements();
+  renderProfile();
+  renderGallery();
+  setupAchievements();
+} else if (document.body.dataset.page === 'archive') {
+  renderArchive();
 } else {
   renderDetail();
 }

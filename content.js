@@ -58,7 +58,7 @@ window.PORTFOLIO_CONTENT = {
     {
       id: 'earlier-note', title: 'An earlier note', category: 'Field note', date: '2025-11-16', year: '2025',
       summary: 'An older placeholder that demonstrates the complete archive view.',
-      story: 'This older demonstration entry stays outside the newest-five filmstrip until the complete archive is opened.',
+      story: 'This older demonstration entry stays outside the newest-five contact sheet until the complete archive is opened.',
       facts: ['Demo entry — not a real credential', 'Visible through View all'], links: [],
       image: 'assets/achievement-placeholder-03.svg', imageAlt: 'Abstract open doorway and a small star', placeholder: true
     }
