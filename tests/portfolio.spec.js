@@ -11,12 +11,15 @@ async function overrideContent(page, sourceAddition) {
   });
 }
 
-test('desktop first viewport is a near-square 28/72 poster with reference hierarchy', async ({ page }) => {
-  await page.setViewportSize({ width: 1050, height: 1050 });
+test('home fills the viewport with an exact one-third achievement rail', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
   await page.goto('/');
   const poster = page.locator('.poster-stage');
   const box = await poster.boundingBox();
-  expect(Math.abs(box.width - box.height)).toBeLessThan(3);
+  expect(box.x).toBeCloseTo(0, 0);
+  expect(box.y).toBeCloseTo(0, 0);
+  expect(box.width).toBeCloseTo(1200, 0);
+  expect(box.height).toBeCloseTo(800, 0);
   const columnHeights = await poster.evaluate((node) => {
     const stage = node.getBoundingClientRect();
     const left = node.querySelector('.contact-sheet').getBoundingClientRect();
@@ -37,7 +40,7 @@ test('desktop first viewport is a near-square 28/72 poster with reference hierar
   expect(columnHeights.right).toBeCloseTo(columnHeights.stage, 0);
   expect(columnHeights.fifthStartsInsideStrip).toBe(true);
   expect(columnHeights.titleFits).toBe(true);
-  expect(await page.locator('.contact-sheet').evaluate((node) => node.getBoundingClientRect().width / node.closest('.poster-stage').getBoundingClientRect().width)).toBeCloseTo(.28, 1);
+  expect(await page.locator('.contact-sheet').evaluate((node) => node.getBoundingClientRect().width / node.closest('.poster-stage').getBoundingClientRect().width)).toBeCloseTo(1 / 3, 2);
   await expect(page.locator('.poster-header h1')).toHaveText('AnNT');
   await expect(page.locator('.title-tail')).toHaveText('archive');
   await expect(page.locator('.hero-field')).toBeVisible();
@@ -48,7 +51,17 @@ test('desktop first viewport is a near-square 28/72 poster with reference hierar
   await expect(page.getByRole('link', { name: 'View all achievements' })).toHaveAttribute('href', 'archive.html');
   await expect(page.locator('[data-linkedin]')).toHaveAttribute('aria-disabled', 'true');
   await expect(page.locator('[data-cv]')).toHaveAttribute('aria-disabled', 'true');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => ({
+    noHorizontalScroll: document.documentElement.scrollWidth <= window.innerWidth,
+    noVerticalScroll: document.documentElement.scrollHeight <= window.innerHeight,
+    scrollY: window.scrollY
+  }))).toEqual({ noHorizontalScroll: true, noVerticalScroll: true, scrollY: 0 });
+
+  await page.setViewportSize({ width: 900, height: 1200 });
+  expect(await poster.evaluate((node) => {
+    const bounds = node.getBoundingClientRect();
+    return [bounds.width, bounds.height, document.documentElement.scrollHeight];
+  })).toEqual([900, 1200, 1200]);
 });
 
 test('the contact sheet contains exactly the newest five linked records in order', async ({ page }) => {
@@ -69,7 +82,7 @@ test('the contact sheet contains exactly the newest five linked records in order
   await expect(cards.first().locator('.frame-meta')).toContainText('First steps, carefully made');
 });
 
-test('autoplay, pointer/focus pause, buttons, wheel, and keyboard are predictable without trapping wheel scroll', async ({ page }) => {
+test('autoplay, pointer/focus pause, buttons, wheel, and keyboard stay inside the locked viewport', async ({ page }) => {
   await page.addInitScript(() => {
     const intervals = new Map(); let nextId = 1;
     window.setInterval = (callback) => { const id = nextId++; intervals.set(id, callback); return id; };
@@ -114,8 +127,15 @@ test('autoplay, pointer/focus pause, buttons, wheel, and keyboard are predictabl
     node.dispatchEvent(event);
     return event.defaultPrevented;
   });
-  expect(prevented).toBe(false);
+  expect(prevented).toBe(true);
   await expect(status).toHaveText('4 of 5');
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const zoomPrevented = await viewport.evaluate((node) => {
+    const event = new WheelEvent('wheel', { deltaY: 100, ctrlKey: true, bubbles: true, cancelable: true });
+    node.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(zoomPrevented).toBe(false);
   await viewport.focus();
   await page.keyboard.press('ArrowDown');
   await expect(status).toHaveText('5 of 5');
@@ -160,15 +180,44 @@ test('horizontal touch gesture selects and reveals a mobile frame while preservi
   await context.close();
 });
 
-test('mobile reflows poster then contact sheet with readable targets and no overflow', async ({ page }) => {
+test('mobile keeps the one-third rail and entire home inside one viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  const order = await page.locator('.poster-stage > *').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).order));
-  expect(order).toEqual(['2', '0']);
   await expect(page.locator('.feature-poster')).toBeVisible();
   await expect(page.locator('.achievement-card')).toHaveCount(5);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  expect(await page.locator('.ink-link').first().evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+  expect(await page.locator('.contact-sheet').evaluate((node) => node.getBoundingClientRect().width / window.innerWidth)).toBeCloseTo(1 / 3, 2);
+  expect(await page.evaluate(() => ({
+    width: document.documentElement.scrollWidth <= window.innerWidth,
+    height: document.documentElement.scrollHeight <= window.innerHeight,
+    scrollY: window.scrollY
+  }))).toEqual({ width: true, height: true, scrollY: 0 });
+  expect(await page.locator('.ink-link').first().evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(30);
+  await expect(page.locator('.achievement-card').first().locator('.frame-meta em')).toBeVisible();
+  await expect(page.locator('.reference-note')).toBeVisible();
+});
+
+test('short and landscape viewports keep essential controls inside the locked home', async ({ page }) => {
+  for (const viewport of [{ width: 667, height: 375 }, { width: 900, height: 400 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    for (const selector of ['[data-github]', '.archive-link', '[data-carousel-controls]']) {
+      const bounds = await page.locator(selector).boundingBox();
+      expect(bounds.y).toBeGreaterThanOrEqual(0);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+  }
+});
+
+test('no-script fallback link remains reachable inside the fixed viewport', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await page.goto('/');
+  const link = page.getByRole('link', { name: 'open this sample entry' });
+  await expect(link).toBeVisible();
+  const bounds = await link.boundingBox();
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
+  await context.close();
 });
 
 test('content overrides propagate and empty/missing media show authored fallbacks', async ({ page }) => {

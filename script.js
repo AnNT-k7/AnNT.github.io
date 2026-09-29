@@ -197,11 +197,15 @@ function setupAchievements() {
     if (!interactionRegion.contains(event.relatedTarget)) { focusPaused = false; restartTimer(); }
   });
   viewport.addEventListener('wheel', (event) => {
-    if (reduced.matches) return;
-    if (Math.abs(event.deltaY) < 12 || performance.now() - lastWheelAt < 500) return;
+    if (reduced.matches || event.ctrlKey || event.metaKey) return;
+    const delta = event.deltaY * (event.deltaMode === WheelEvent.DOM_DELTA_LINE
+      ? 16
+      : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? viewport.clientHeight : 1);
+    if (Math.abs(delta) < 12 || performance.now() - lastWheelAt < 500) return;
+    event.preventDefault();
     lastWheelAt = performance.now();
-    move(event.deltaY > 0 ? 1 : -1);
-  }, { passive: true });
+    move(delta > 0 ? 1 : -1);
+  }, { passive: false });
   viewport.addEventListener('keydown', (event) => {
     if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
     event.preventDefault();
